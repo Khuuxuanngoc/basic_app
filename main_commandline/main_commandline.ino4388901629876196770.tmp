@@ -1,0 +1,155 @@
+#include "app/app.h"
+#include "common/Job.h"
+#include "app/task_job.h"
+
+JOB testjob;
+JOB testvoid_job;
+
+enum{
+  ID_BLINK_1_JOB = 0,
+//  ID_BLINK_2_JOB,
+  ID_END_OF_JOB
+}job_id;
+
+typedef struct {
+  uint8_t val1;
+}struct_test;
+
+struct_test st_test;
+
+//#define MAX_JOB 3
+JOB job_array[ID_END_OF_JOB];
+
+void testvoid1(void*);
+void testvoid2(void*);
+
+task_job tb_job[ID_END_OF_JOB + 1] = {
+  {ID_BLINK_1_JOB ,   2  ,     testvoid1  },
+  {ID_BLINK_2_JOB ,   2  ,     testvoid2  },
+  {ID_END_OF_JOB  ,   1  ,     (pf_task_job)0  },
+};
+
+JOB test1j;
+JOB test2j;
+
+void testvoid1b(void*);
+void testvoid2b(void*);
+
+task_job2 tb_job2[] = {
+  {ID_BLINK_1_JOB ,   2  ,     testvoid1b  ,   &test1j},
+//  {ID_BLINK_2_JOB ,   2  ,     testvoid2b  ,   &test2j},
+  {ID_END_OF_JOB  ,   1  ,     (pf_task_job)0  ,(p_job)0},
+};
+
+//task_job tb_job[]=
+
+void setup() {
+  // put your setup code here, to run once:
+  
+//  main_app();
+  Serial.begin(9600);
+  testjob.begin(testjob_F);
+//  testvoid_job.begin(testvoid);
+
+//  for(uint8_t cf = 0; cf < ID_END_OF_JOB; cf++){
+//    job_array[cf].begin(tb_job[cf].task);
+//  }
+
+  for(uint8_t cf = 0; cf < ID_END_OF_JOB; cf++){
+    tb_job2[cf].job->begin(tb_job2[cf].task);
+  }
+  
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+//  testjob.run();
+//  testvoid_job.run();
+  
+//  for(uint8_t cf = 0; cf <= ID_END_OF_JOB; cf++){
+//    job_array[cf].run();
+//  }
+
+  for(uint8_t cf = 0; cf < ID_END_OF_JOB; cf++){
+    tb_job2[cf].job->run();
+  }
+}
+
+void testjob_F(){
+//  Serial.begin(9600);
+  static uint32_t tcount;
+  if(testjob.nextloop == 1){
+    tcount = micros();
+    Serial.println("testjob_F().loop1 " + String(tcount));
+    testvoid_job.p_data = (uint8_t*)"haha";
+    
+    for(uint8_t cf = 0; cf < ID_END_OF_JOB; cf++){
+//      job_array[cf].p_data = (uint8_t*)" Job array change ";
+      
+      job_array[cf].p_data = &cf;
+    }
+    
+    testjob.delay(2000);
+    
+  }else if(testjob.nextloop == 2){
+    Serial.println("testjob_F().loop2 " + String(micros() - tcount));
+    Serial.println("sub " + String(micros()));
+    testjob.delay(2000);
+    testjob.setloop(1);
+    testvoid_job.p_data = (uint8_t*)"hi hi hi";
+    for(uint8_t cf = 0; cf < ID_END_OF_JOB; cf++){
+//      st_test.val1 = cf;
+//      job_array[cf].p_data = (uint8_t*)&st_test;
+      job_array[cf].p_data = &cf;
+    }
+  }else;
+}
+
+void testvoid(void* _mesage_){
+  Serial.print("testvoid: ");
+  Serial.println((char*)_mesage_);
+  testvoid_job.delay(100);
+}
+
+void testvoid1(void* _mesage_){
+  Serial.print("testvoid1: ");
+  Serial.println((char*)_mesage_);
+  job_array[ID_BLINK_1_JOB].delay(500);
+}
+
+//void testvoid2(void* _mesage_){
+//  uint8_t rr = *((uint8_t*) _mesage_);
+//  struct_test* temp_str_test = (struct_test*)_mesage_;
+//  Serial.print("testvoid2: ");
+////  Serial.println(*_mesage_);
+//  Serial.println(rr);
+////  Serial.println(temp_str_test->val1);
+//  job_array[ID_BLINK_2_JOB].delay(1000);
+//}
+
+void testvoid1b(void* _trt_){
+
+  if(test1j.nextloop == 1){
+    Serial.print("testvoid1b called loop 1: ");
+    Serial.println((char*)_trt_);
+    test2j.p_data= (uint8_t*)"F1 goodbye!";
+    test1j.delay(1000);
+  }else if(test1j.nextloop == 2){
+    Serial.print("testvoid1b called loop 2: ");
+    Serial.println((char*)_trt_);
+    test2j.p_data= (uint8_t*)"F1 heloo";
+    
+    delay(1000);
+    test1j.setloop(1);
+  }else;
+  test1j.p_data = (uint8_t*)(0);
+}
+
+void testvoid2b(void* _trt_){
+  Serial.print("testvoid2b called: ");
+  Serial.println((char*)_trt_);
+  test2j.delay(1000);
+  test1j.p_data= (uint8_t*)"F2 xin chao";
+  test2j.p_data = (uint8_t*)(0);
+}
+
